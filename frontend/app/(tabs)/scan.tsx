@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
@@ -8,38 +8,41 @@ import {
   Alert,
   Platform,
   View,
-} from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+} from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useThemeColor } from '@/hooks/use-theme-color';
-import { Colors } from '@/constants/theme';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { Colors } from "@/constants/theme";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 // Configure your backend API URL
-const API_URL = 'http://localhost:8000'; // Change to your Railway URL when deployed
+const API_URL = "https://edumetrics-production-7941.up.railway.app"; // Change to your Railway URL when deployed
 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [capturedImage, setCapturedImage] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
   const [ocrResult, setOcrResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [backendStatus, setBackendStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [backendStatus, setBackendStatus] = useState<
+    "checking" | "online" | "offline"
+  >("checking");
 
   const cameraRef = useRef<CameraView>(null);
-  const tintColor = useThemeColor({}, 'tint');
+  const tintColor = useThemeColor({}, "tint");
 
   const checkBackendHealth = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/health`, { method: 'GET' });
-      setBackendStatus(response.ok ? 'online' : 'offline');
+      const response = await fetch(`${API_URL}/health`, { method: "GET" });
+      setBackendStatus(response.ok ? "online" : "offline");
     } catch {
-      setBackendStatus('offline');
+      setBackendStatus("offline");
     }
   }, []);
 
@@ -51,7 +54,10 @@ export default function ScanScreen() {
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
-        Alert.alert('Permission Required', 'Camera permission is needed to scan documents.');
+        Alert.alert(
+          "Permission Required",
+          "Camera permission is needed to scan documents.",
+        );
         return;
       }
     }
@@ -70,21 +76,25 @@ export default function ScanScreen() {
           setShowCamera(false);
         }
       } catch (error: any) {
-        Alert.alert('Error', 'Failed to capture image: ' + error.message);
+        Alert.alert("Error", "Failed to capture image: " + error.message);
       }
     }
   }
 
   async function pickImage() {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Photo library permission is needed to upload images.');
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Photo library permission is needed to upload images.",
+        );
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.9,
@@ -96,7 +106,7 @@ export default function ScanScreen() {
         setShowCamera(false);
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to pick image: ' + error.message);
+      Alert.alert("Error", "Failed to pick image: " + error.message);
     }
   }
 
@@ -110,31 +120,40 @@ export default function ScanScreen() {
       const formData = new FormData();
 
       if (capturedImage.base64) {
-        const blob = await fetch(`data:image/jpeg;base64,${capturedImage.base64}`).then((res) => res.blob());
-        formData.append('file', blob, 'document.jpg');
+        const blob = await fetch(
+          `data:image/jpeg;base64,${capturedImage.base64}`,
+        ).then((res) => res.blob());
+        formData.append("file", blob, "document.jpg");
       } else if (capturedImage.uri) {
-        formData.append('file', {
+        formData.append("file", {
           uri: capturedImage.uri,
-          name: 'document.jpg',
-          type: 'image/jpeg',
+          name: "document.jpg",
+          type: "image/jpeg",
         } as any);
       }
 
       const response = await fetch(`${API_URL}/ocr`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
-        headers: { Accept: 'application/json' },
+        headers: { Accept: "application/json" },
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setOcrResult(data.text || 'No text found in the image.');
+        setOcrResult(data.text || "No text found in the image.");
       } else {
-        Alert.alert('OCR Failed', data.error || 'Could not process the document.');
+        console.log(data);
+        Alert.alert(
+          "OCR Failed",
+          data.error || "Could not process the document.",
+        );
       }
     } catch (error: any) {
-      Alert.alert('Upload Error', 'Failed to process document: ' + error.message);
+      Alert.alert(
+        "Upload Error",
+        "Failed to process document: " + error.message,
+      );
     } finally {
       setLoading(false);
     }
@@ -162,7 +181,10 @@ export default function ScanScreen() {
         >
           <View style={styles.cameraOverlay}>
             <View style={styles.cameraHeader}>
-              <TouchableOpacity onPress={() => setShowCamera(false)} style={styles.closeButton}>
+              <TouchableOpacity
+                onPress={() => setShowCamera(false)}
+                style={styles.closeButton}
+              >
                 <MaterialIcons name="close" size={28} color="white" />
               </TouchableOpacity>
             </View>
@@ -175,12 +197,18 @@ export default function ScanScreen() {
             </View>
 
             <View style={styles.cameraControls}>
-              <TouchableOpacity style={styles.galleryButton} onPress={pickImage}>
+              <TouchableOpacity
+                style={styles.galleryButton}
+                onPress={pickImage}
+              >
                 <MaterialIcons name="photo-library" size={28} color="white" />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.captureButton, !cameraReady && styles.captureButtonDisabled]}
+                style={[
+                  styles.captureButton,
+                  !cameraReady && styles.captureButtonDisabled,
+                ]}
                 onPress={takePicture}
                 disabled={!cameraReady}
               >
@@ -196,18 +224,25 @@ export default function ScanScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+    >
       {/* Status Bar */}
       <ThemedView style={styles.statusBar}>
         <View style={styles.statusItem}>
           <View
             style={[
               styles.statusDot,
-              backendStatus === 'online' ? styles.statusOnline : styles.statusOffline,
+              backendStatus === "online"
+                ? styles.statusOnline
+                : styles.statusOffline,
             ]}
           />
           <ThemedText style={styles.statusLabel}>
-            {backendStatus === 'online' ? 'Backend Connected' : 'Backend Disconnected'}
+            {backendStatus === "online"
+              ? "Backend Connected"
+              : "Backend Disconnected"}
           </ThemedText>
         </View>
         <TouchableOpacity onPress={checkBackendHealth}>
@@ -219,14 +254,24 @@ export default function ScanScreen() {
       <ThemedView style={styles.previewContainer}>
         {capturedImage ? (
           <Image
-            source={{ uri: capturedImage.uri || `data:image/jpeg;base64,${capturedImage.base64}` }}
+            source={{
+              uri:
+                capturedImage.uri ||
+                `data:image/jpeg;base64,${capturedImage.base64}`,
+            }}
             style={styles.previewImage}
             resizeMode="contain"
           />
         ) : (
           <View style={styles.emptyState}>
-            <MaterialIcons name="document-scanner" size={64} color={Colors.light.icon} />
-            <ThemedText style={styles.emptyStateText}>No document captured</ThemedText>
+            <MaterialIcons
+              name="document-scanner"
+              size={64}
+              color={Colors.light.icon}
+            />
+            <ThemedText style={styles.emptyStateText}>
+              No document captured
+            </ThemedText>
             <ThemedText style={styles.emptyStateSubtext}>
               Use the camera or gallery to scan a document
             </ThemedText>
@@ -237,14 +282,24 @@ export default function ScanScreen() {
       {/* Actions */}
       {!capturedImage && (
         <View style={styles.buttonGroup}>
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: tintColor }]} onPress={openCamera}>
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: tintColor }]}
+            onPress={openCamera}
+          >
             <MaterialIcons name="camera-alt" size={24} color="white" />
-            <ThemedText style={styles.primaryButtonText}>Open Camera</ThemedText>
+            <ThemedText style={styles.primaryButtonText}>
+              Open Camera
+            </ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.secondaryButton, { borderColor: tintColor }]} onPress={pickImage}>
+          <TouchableOpacity
+            style={[styles.secondaryButton, { borderColor: tintColor }]}
+            onPress={pickImage}
+          >
             <MaterialIcons name="photo-library" size={24} color={tintColor} />
-            <ThemedText style={[styles.secondaryButtonText, { color: tintColor }]}>
+            <ThemedText
+              style={[styles.secondaryButtonText, { color: tintColor }]}
+            >
               Choose from Gallery
             </ThemedText>
           </TouchableOpacity>
@@ -254,15 +309,27 @@ export default function ScanScreen() {
       {capturedImage && !loading && (
         <View style={styles.buttonGroup}>
           {!ocrResult && (
-            <TouchableOpacity style={[styles.primaryButton, { backgroundColor: tintColor }]} onPress={uploadAndProcess}>
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: tintColor }]}
+              onPress={uploadAndProcess}
+            >
               <MaterialIcons name="document-scanner" size={24} color="white" />
-              <ThemedText style={styles.primaryButtonText}>Process Document</ThemedText>
+              <ThemedText style={styles.primaryButtonText}>
+                Process Document
+              </ThemedText>
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={[styles.secondaryButton, { borderColor: tintColor }]} onPress={retake}>
+          <TouchableOpacity
+            style={[styles.secondaryButton, { borderColor: tintColor }]}
+            onPress={retake}
+          >
             <MaterialIcons name="refresh" size={24} color={tintColor} />
-            <ThemedText style={[styles.secondaryButtonText, { color: tintColor }]}>Retake</ThemedText>
+            <ThemedText
+              style={[styles.secondaryButtonText, { color: tintColor }]}
+            >
+              Retake
+            </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.textButton} onPress={reset}>
@@ -274,8 +341,12 @@ export default function ScanScreen() {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={tintColor} />
-          <ThemedText style={styles.loadingText}>Processing document...</ThemedText>
-          <ThemedText style={styles.loadingSubtext}>This may take a few moments</ThemedText>
+          <ThemedText style={styles.loadingText}>
+            Processing document...
+          </ThemedText>
+          <ThemedText style={styles.loadingSubtext}>
+            This may take a few moments
+          </ThemedText>
         </View>
       )}
 
@@ -285,11 +356,15 @@ export default function ScanScreen() {
             <MaterialIcons name="text-fields" size={20} color={tintColor} />
             <ThemedText style={styles.resultTitle}>Extracted Text</ThemedText>
           </View>
-          <ThemedView style={styles.resultContent} lightColor="#f8f8f8" darkColor="#1a1a1a">
+          <ThemedView
+            style={styles.resultContent}
+            lightColor="#f8f8f8"
+            darkColor="#1a1a1a"
+          >
             <ThemedText
               style={[
                 styles.resultText,
-                { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
+                { fontFamily: Platform.OS === "ios" ? "Courier" : "monospace" },
               ]}
             >
               {ocrResult}
@@ -310,20 +385,20 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   statusBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   statusDot: {
     width: 8,
@@ -332,10 +407,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   statusOnline: {
-    backgroundColor: '#4caf50',
+    backgroundColor: "#4caf50",
   },
   statusOffline: {
-    backgroundColor: '#f44336',
+    backgroundColor: "#f44336",
   },
   statusLabel: {
     fontSize: 13,
@@ -343,22 +418,22 @@ const styles = StyleSheet.create({
   previewContainer: {
     borderRadius: 16,
     height: 300,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   previewImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
   },
   emptyStateText: {
@@ -368,46 +443,46 @@ const styles = StyleSheet.create({
   emptyStateSubtext: {
     fontSize: 13,
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.6,
   },
   buttonGroup: {
     gap: 12,
   },
   primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
     borderRadius: 12,
     gap: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   primaryButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     gap: 8,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   textButton: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 12,
   },
   textButtonText: {
@@ -415,13 +490,13 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   loadingContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 30,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   loadingSubtext: {
     marginTop: 4,
@@ -431,29 +506,29 @@ const styles = StyleSheet.create({
   resultContainer: {
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   resultHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
     gap: 8,
   },
   resultTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   resultContent: {
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
   resultText: {
     fontSize: 14,
@@ -462,100 +537,100 @@ const styles = StyleSheet.create({
   // Camera styles
   cameraContainer: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: "black",
   },
   camera: {
     flex: 1,
   },
   cameraOverlay: {
     flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'space-between',
+    backgroundColor: "transparent",
+    justifyContent: "space-between",
     padding: 20,
   },
   cameraHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
     paddingTop: 20,
   },
   closeButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   cameraFrame: {
-    alignSelf: 'center',
+    alignSelf: "center",
     width: 280,
     height: 380,
-    position: 'relative',
+    position: "relative",
   },
   cornerTL: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     width: 40,
     height: 40,
     borderTopWidth: 4,
     borderLeftWidth: 4,
-    borderColor: 'white',
+    borderColor: "white",
   },
   cornerTR: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     right: 0,
     width: 40,
     height: 40,
     borderTopWidth: 4,
     borderRightWidth: 4,
-    borderColor: 'white',
+    borderColor: "white",
   },
   cornerBL: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     width: 40,
     height: 40,
     borderBottomWidth: 4,
     borderLeftWidth: 4,
-    borderColor: 'white',
+    borderColor: "white",
   },
   cornerBR: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     right: 0,
     width: 40,
     height: 40,
     borderBottomWidth: 4,
     borderRightWidth: 4,
-    borderColor: 'white',
+    borderColor: "white",
   },
   cameraControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
     paddingBottom: 30,
   },
   galleryButton: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   captureButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 4,
-    borderColor: 'white',
+    borderColor: "white",
   },
   captureButtonDisabled: {
     opacity: 0.5,
@@ -564,7 +639,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   placeholderButton: {
     width: 50,

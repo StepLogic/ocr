@@ -1,8 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-import requests
+from ollama import Client, ResponseError
 import base64
 import os
 from typing import Optional
@@ -23,12 +22,12 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
 OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", None)
 
 
-def get_ollama_headers():
-    """Build headers for Ollama requests, including optional API key."""
-    headers = {"Content-Type": "application/json"}
+def get_ollama_client():
+    """Initialize and return an Ollama client with optional auth headers."""
+    headers = {}
     if OLLAMA_API_KEY:
         headers["Authorization"] = f"Bearer {OLLAMA_API_KEY}"
-    return headers
+    return Client(host=OLLAMA_URL, headers=headers)
 
 
 class OCRResponse(BaseModel):
@@ -43,47 +42,39 @@ def encode_image(image_bytes: bytes) -> str:
 
 
 def perform_ocr(image_bytes: bytes) -> str:
-    """Send image to Ollama Gemma model for OCR."""
+    """Send image to Ollama Gemma model for OCR using the official client."""
     base64_image = encode_image(image_bytes)
-
-    payload = {
-        "model": OLLAMA_MODEL,
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are an OCR assistant. Extract all readable text from the image. Return only the extracted text, no explanations."
-            },
-            {
-                "role": "user",
-                "content": "Extract all text from this image:",
-                "images": [base64_image]
-            }
-        ],
-        "stream": False
-    }
+    client = get_ollama_client()
 
     try:
-        response = requests.post(
-            f"{OLLAMA_URL}/api/chat",
-            json=payload,
-            headers=get_ollama_headers(),
-            timeout=300
+        response = client.chat(
+            model=OLLAMA_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an OCR assistant. Extract all readable text from the image. Return only the extracted text, no explanations."
+                },
+                {
+                    "role": "user",
+                    "content": "Extract all text from this image:",
+                    "images": [base64_image]
+                }
+            ],
+            stream=False
         )
-        response.raise_for_status()
-        result = response.json()
 
-        # Extract text from Ollama response
-        if "message" in result and "content" in result["message"]:
-            return result["message"]["content"].strip()
-        elif "response" in result:
-            return result["response"].strip()
+        # Extract text from response
+        if "message" in response and "content" in response["message"]:
+            return response["message"]["content"].strip()
+        elif "response" in response:
+            return response["response"].strip()
         else:
-            return str(result)
+            return str(response)
 
-    except requests.exceptions.RequestException as e:
+    except ResponseError as e:
         raise HTTPException(
             status_code=503,
-            detail=f"Ollama service error: {str(e)}"
+            detail=f"Ollama service error: {e.error}"
         )
     except Exception as e:
         raise HTTPException(
@@ -100,13 +91,11 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Check if Ollama service is reachable."""
+    client = get_ollama_client()
     try:
-        response = requests.get(
-            f"{OLLAMA_URL}/api/tags",
-            headers=get_ollama_headers(),
-            timeout=10
-        )
-        ollama_status = "connected" if response.status_code == 200 else "unavailable"
+        # Attempt to list models to verify connectivity
+        client.list()
+        ollama_status = "connected"
     except Exception as e:
         ollama_status = "unavailable"
 
