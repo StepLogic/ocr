@@ -18,7 +18,7 @@ app.add_middleware(
 )
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma4:31b-cloud")
 OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", None)
 
 
@@ -42,7 +42,7 @@ def encode_image(image_bytes: bytes) -> str:
 
 
 def perform_ocr(image_bytes: bytes) -> str:
-    """Send image to Ollama Gemma model for OCR using the official client."""
+    """Send image to Ollama model for OCR using the official client."""
     base64_image = encode_image(image_bytes)
     client = get_ollama_client()
 
@@ -93,10 +93,9 @@ async def health_check():
     """Check if Ollama service is reachable."""
     client = get_ollama_client()
     try:
-        # Attempt to list models to verify connectivity
         client.list()
         ollama_status = "connected"
-    except Exception as e:
+    except Exception:
         ollama_status = "unavailable"
 
     return {
@@ -110,7 +109,7 @@ async def health_check():
 @app.post("/ocr", response_model=OCRResponse)
 async def ocr_endpoint(file: UploadFile = File(...)):
     """
-    Upload an image file and perform OCR using Ollama Gemma model.
+    Upload an image file and perform OCR using Ollama model.
     Supports: PNG, JPG, JPEG, GIF, BMP, WebP
     """
     # Validate file type
@@ -173,4 +172,4 @@ async def ocr_base64_endpoint(image_data: dict):
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8000"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

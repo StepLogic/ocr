@@ -25,11 +25,13 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "android.permission.DETECT_SCREEN_CAPTURE"
-      ]
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.DETECT_SCREEN_CAPTURE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.kojogyaase.frontend"
     },
     "web": {
       "output": "static",
@@ -65,6 +67,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cfd192b0-7822-43a2-8a18-37a25ed4e3a3"
+      }
+    },
+    "owner": "kojogyaase"
   }
 }

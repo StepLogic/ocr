@@ -21,7 +21,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 // Configure your backend API URL
 const API_URL = "https://edumetrics-production-7941.up.railway.app"; // Change to your Railway URL when deployed
-
+// const API_URL = "https://compatibility-villa-problems-loc.trycloudflare.com";
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
@@ -40,8 +40,11 @@ export default function ScanScreen() {
   const checkBackendHealth = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/health`, { method: "GET" });
+      const text = await response.text();
+      console.log("Health response:", response.status, text.substring(0, 200));
       setBackendStatus(response.ok ? "online" : "offline");
-    } catch {
+    } catch (err: any) {
+      console.log("Health error:", err.message);
       setBackendStatus("offline");
     }
   }, []);
@@ -118,18 +121,43 @@ export default function ScanScreen() {
 
     try {
       const formData = new FormData();
+      console.log("[DEBUG] capturedImage:", {
+        hasBase64: !!capturedImage.base64,
+        base64Length: capturedImage.base64?.length,
+        hasUri: !!capturedImage.uri,
+        uri: capturedImage.uri,
+      });
 
       if (capturedImage.base64) {
-        const blob = await fetch(
-          `data:image/jpeg;base64,${capturedImage.base64}`,
-        ).then((res) => res.blob());
-        formData.append("file", blob, "document.jpg");
+        // For web/expo-web: use blob approach
+        // For native: use base64 directly in a different endpoint
+        if (Platform.OS === "web") {
+          const blob = await fetch(
+            `data:image/jpeg;base64,${capturedImage.base64}`,
+          ).then((res) => res.blob());
+          console.log("[DEBUG] Created blob:", blob.size, "bytes");
+          formData.append("file", blob, "document.jpg");
+        } else {
+          // On native, use the uri approach which RN handles better
+          formData.append("file", {
+            uri:
+              capturedImage.uri ||
+              `data:image/jpeg;base64,${capturedImage.base64}`,
+            name: "document.jpg",
+            type: "image/jpeg",
+          } as any);
+          console.log("[DEBUG] Appended file object with uri");
+        }
       } else if (capturedImage.uri) {
         formData.append("file", {
           uri: capturedImage.uri,
           name: "document.jpg",
           type: "image/jpeg",
         } as any);
+        console.log("[DEBUG] Appended file object with uri only");
+      } else {
+        console.error("[DEBUG] No base64 or uri available!");
+        throw new Error("No image data available");
       }
 
       const response = await fetch(`${API_URL}/ocr`, {
@@ -138,7 +166,18 @@ export default function ScanScreen() {
         headers: { Accept: "application/json" },
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log("OCR response status:", response.status);
+      console.log("OCR response body:", responseText.substring(0, 500));
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          `Server returned non-JSON (status ${response.status}): ${responseText.substring(0, 200)}`,
+        );
+      }
 
       if (data.success) {
         setOcrResult(data.text || "No text found in the image.");
@@ -150,6 +189,7 @@ export default function ScanScreen() {
         );
       }
     } catch (error: any) {
+      console.log(error);
       Alert.alert(
         "Upload Error",
         "Failed to process document: " + error.message,
